@@ -71,7 +71,7 @@ def import_set(dset, in_stream, headers=True):
     dset.wipe()
 
     xls_book = openpyxl.reader.excel.load_workbook(BytesIO(in_stream))
-    sheet = xls_book.get_active_sheet()
+    sheet = xls_book.active
 
     dset.title = sheet.title
 
@@ -142,8 +142,8 @@ def dset_sheet(dataset, ws, freeze_panes=True):
                         cell.value = unicode('%s' % col, errors='ignore')
                         cell.alignment = wrap_text
                     else:
-                        cell.value = unicode('%s' % col, errors='ignore')
+                        cell.value = unicode(col)
                 except TypeError:
-                    cell.value = unicode(col)
+                    cell.value = col
 
 
