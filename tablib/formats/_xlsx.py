@@ -52,7 +52,7 @@ def export_book(databook, freeze_panes=True):
 
     wb = Workbook()
     for sheet in wb.worksheets:
-        wb.remove_sheet(sheet)
+        wb.remove(sheet)
     for i, dset in enumerate(databook._datasets):
         ws = wb.create_sheet()
         ws.title = dset.title if dset.title else 'Sheet%s' % (i)
@@ -70,7 +70,7 @@ def import_set(dset, in_stream, headers=True):
 
     dset.wipe()
 
-    xls_book = openpyxl.reader.excel.load_workbook(BytesIO(in_stream))
+    xls_book = openpyxl.reader.excel.load_workbook(BytesIO(in_stream), read_only=True)
     sheet = xls_book.active
 
     dset.title = sheet.title
@@ -88,7 +88,7 @@ def import_book(dbook, in_stream, headers=True):
 
     dbook.wipe()
 
-    xls_book = openpyxl.reader.excel.load_workbook(BytesIO(in_stream))
+    xls_book = openpyxl.reader.excel.load_workbook(BytesIO(in_stream), read_only=True)
 
     for sheet in xls_book.worksheets:
         data = tablib.Dataset()
@@ -129,7 +129,7 @@ def dset_sheet(dataset, ws, freeze_panes=True):
                 if freeze_panes:
                     #  Export Freeze only after first Line
                     ws.freeze_panes = 'A2'
-                    
+
             # bold separators
             elif len(row) < dataset.width:
                 cell.value = unicode('%s' % col, errors='ignore')
@@ -145,5 +145,3 @@ def dset_sheet(dataset, ws, freeze_panes=True):
                         cell.value = unicode(col)
                 except TypeError:
                     cell.value = col
-
-
