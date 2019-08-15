@@ -3,30 +3,34 @@
 """ Tablib - *SV Support.
 """
 
-from tablib.compat import is_py3, csv, StringIO
+from tablib.compat import csv, StringIO, unicode
 
 
 title = 'csv'
 extensions = ('csv',)
 
 
-DEFAULT_ENCODING = 'utf-8'
-DEFAULT_DELIMITER = ','
+DEFAULT_DELIMITER = unicode(',')
 
 
-def export_set(dataset, **kwargs):
-    """Returns CSV representation of Dataset."""
+def export_stream_set(dataset, **kwargs):
+    """Returns CSV representation of Dataset as file-like."""
     stream = StringIO()
 
     kwargs.setdefault('delimiter', DEFAULT_DELIMITER)
-    if not is_py3:
-        kwargs.setdefault('encoding', DEFAULT_ENCODING)
 
     _csv = csv.writer(stream, **kwargs)
 
     for row in dataset._package(dicts=False):
         _csv.writerow(row)
 
+    stream.seek(0)
+    return stream
+
+
+def export_set(dataset, **kwargs):
+    """Returns CSV representation of Dataset."""
+    stream = export_stream_set(dataset, **kwargs)
     return stream.getvalue()
 
 
@@ -36,15 +40,13 @@ def import_set(dset, in_stream, headers=True, **kwargs):
     dset.wipe()
 
     kwargs.setdefault('delimiter', DEFAULT_DELIMITER)
-    if not is_py3:
-        kwargs.setdefault('encoding', DEFAULT_ENCODING)
 
     rows = csv.reader(StringIO(in_stream), **kwargs)
     for i, row in enumerate(rows):
 
         if (i == 0) and (headers):
             dset.headers = row
-        else:
+        elif row:
             dset.append(row)
 
 

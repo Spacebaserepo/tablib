@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Tests for Tablib."""
-
-import doctest
-import json
-import unittest
-import sys
-from uuid import uuid4
+from __future__ import unicode_literals
 
 import datetime
+import doctest
+import json
+import sys
+import unittest
+from uuid import uuid4
 
 import tablib
 from tablib.compat import markup, unicode, is_py3
 from tablib.core import Row
+from tablib.formats import _csv as csv_module
 
 
 class TablibTestCase(unittest.TestCase):
@@ -227,21 +228,21 @@ class TablibTestCase(unittest.TestCase):
 
         # Delete from invalid index
         self.assertRaises(IndexError, self.founders.__delitem__, 3)
-            
+
     def test_json_export(self):
         """Verify exporting dataset object as JSON"""
-        
+
         address_id = uuid4()
         headers = self.headers + ('address_id',)
         founders = tablib.Dataset(headers=headers, title='Founders')
         founders.append(('John', 'Adams', 90, address_id))
         founders_json = founders.export('json')
-        
+
         expected_json = (
             '[{"first_name": "John", "last_name": "Adams", "gpa": 90, '
             '"address_id": "%s"}]' % str(address_id)
         )
-        
+
         self.assertEqual(founders_json, expected_json)
 
     def test_csv_export(self):
@@ -260,6 +261,24 @@ class TablibTestCase(unittest.TestCase):
             csv = csv.strip(',') + '\r\n'
 
         self.assertEqual(csv, self.founders.csv)
+
+    def test_csv_stream_export(self):
+        """Verify exporting dataset object as CSV from file object."""
+
+        # Build up the csv string with headers first, followed by each row
+        csv = ''
+        for col in self.headers:
+            csv += col + ','
+
+        csv = csv.strip(',') + '\r\n'
+
+        for founder in self.founders:
+            for col in founder:
+                csv += str(col) + ','
+            csv = csv.strip(',') + '\r\n'
+
+        csv_stream = csv_module.export_stream_set(self.founders)
+        self.assertEqual(csv, csv_stream.getvalue())
 
     def test_tsv_export(self):
         """Verify exporting dataset object as TSV."""
@@ -315,6 +334,23 @@ class TablibTestCase(unittest.TestCase):
         d = tablib.Dataset(['foo', None, 'bar'], headers=headers)
 
         self.assertEqual(html, d.html)
+
+    def test_jira_export(self):
+
+        expected = """||first_name||last_name||gpa||
+|John|Adams|90|
+|George|Washington|67|
+|Thomas|Jefferson|50|"""
+        self.assertEqual(expected, self.founders.jira)
+
+    def test_jira_export_no_headers(self):
+        self.assertEqual('|a|b|c|', tablib.Dataset(['a', 'b', 'c']).jira)
+
+    def test_jira_export_none_and_empty_values(self):
+        self.assertEqual('| | |c|', tablib.Dataset(['', None, 'c']).jira)
+
+    def test_jira_export_empty_dataset(self):
+        self.assertTrue(tablib.Dataset().jira is not None)
 
     def test_latex_export(self):
         """LaTeX export"""
@@ -399,6 +435,7 @@ class TablibTestCase(unittest.TestCase):
         data.xlsx
         data.ods
         data.html
+        data.jira
         data.latex
         data.df
         data.rst
@@ -421,6 +458,7 @@ class TablibTestCase(unittest.TestCase):
         data.xlsx
         data.ods
         data.html
+        data.jira
         data.latex
         data.rst
 
@@ -551,6 +589,15 @@ class TablibTestCase(unittest.TestCase):
         data.csv = _csv
 
         self.assertEqual(_csv, data.csv)
+
+    def test_csv_import_set_with_unicode_str(self):
+        """Import CSV set with non-ascii characters in unicode literal"""
+        csv_text = (
+            "id,givenname,surname,loginname,email,pref_firstname,pref_lastname\n"
+            "13765,Ævar,Arnfjörð,testing,test@example.com,Ævar,Arnfjörð"
+        )
+        data.csv = csv_text
+        self.assertEqual(data.width, 7)
 
     def test_tsv_import_set(self):
         """Generate and import TSV set serialization."""
